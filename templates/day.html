@@ -1,0 +1,15 @@
+{% extends "bootstrap/base.html" %}
+
+{% block title %}
+QuickCal | {{ month_name }} {{ day }}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+      <div class="col">
+        <h2 class="text-center">{{ day_name }}, {{ month_name }} {{ day }}, 2024</h2>
+      </div>
+    </div>
+</div>
+{% endblock %}

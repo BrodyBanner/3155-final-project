@@ -1,0 +1,26 @@
+{% extends "bootstrap/base.html" %}
+
+{% block title %}
+QuickCal | 2024
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+      <div class="col">
+        <h2 class="text-center">2024</h2>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col">
+        <div class="row">
+          {% for month_number, month_name in months.items() %}
+            <div class="col-md-3 mb-3">
+              <a href="{{ url_for('month', month=month_number) }}" class="btn btn-block btn-month" style="background-color: #007bff; color: #fff; margin-bottom: 10px;">{{ month_name }}</a>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+</div>
+{% endblock %}

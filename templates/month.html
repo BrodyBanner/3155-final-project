@@ -1,0 +1,64 @@
+{% extends "bootstrap/base.html" %}
+
+{% block title %}
+QuickCal | {{ month_name }} 2024
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col">
+            <h2 class="text-center">{{ month_name }} 2024</h2>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th scope="col" style="background-color: #007bff; color: #fff; text-align: center;">Sunday</th>
+                        <th scope="col" style="background-color: #007bff; color: #fff; text-align: center;">Monday</th>
+                        <th scope="col" style="background-color: #007bff; color: #fff; text-align: center;">Tuesday</th>
+                        <th scope="col" style="background-color: #007bff; color: #fff; text-align: center;">Wednesday</th>
+                        <th scope="col" style="background-color: #007bff; color: #fff; text-align: center;">Thursday</th>
+                        <th scope="col" style="background-color: #007bff; color: #fff; text-align: center;">Friday</th>
+                        <th scope="col" style="background-color: #007bff; color: #fff; text-align: center;">Saturday</th>
+                    </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    {% if start_day != 7 %}
+                      {% for _ in range(start_day) %}
+                        <td></td>
+                      {% endfor %}
+                    {% endif %}
+                    {% for i in range(1, num_days + 1) %}
+                        <td>
+                          <a href="{{ url_for('day', month=month, day=i) }}" class="btn btn-block btn-day">
+                            <div class="day-container">
+                                <div class="day-number">{{ i }}</div>
+                                <div class="day-info">Assignment Info</div>
+                            </div>
+                          </a>
+                        </td>
+                        {% if (start_day + i) % 7 == 0 %}
+                          </tr><tr>
+                        {% endif %}
+                    {% endfor %}
+                    {% if num_days != 28 or start_day != 7 %}
+                      {% for i in range(0, 35 - num_days - start_day) %}
+                        <td></td>
+                      {% endfor %}
+                      {% if num_days + start_day > 35 %}
+                        {% for i in range(0, 42 - num_days - start_day) %}
+                          <td></td>
+                        {% endfor %}
+                      {% endif %}
+                    {% endif %}
+                  </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
