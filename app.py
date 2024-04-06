@@ -3,7 +3,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_bootstrap import Bootstrap
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from datetime import datetime
 import calendar
 from dotenv import load_dotenv
@@ -104,13 +104,42 @@ def month(month):
     num_days = calendar.monthrange(2024, month)[1]
     return render_template('month.html', month_name=month_name, num_days=num_days, month=month, start_day=start_day)
 
-@app.route('/day/<int:month>/<int:day>')
+@app.route('/day/<int:month>/<int:day>', methods=['POST', 'GET'])
 @login_required
 def day(month, day):
     month_name = calendar.month_name[month]
     start_day = calendar.monthrange(2024, month)[0] + 1
     day_name = calendar.day_name[((day + start_day) % 7) - 2]
-    return render_template('day.html', month_name=month_name, day_name=day_name, day=day)
+
+    assignments = Assignment.query.filter(
+        db.extract('month', Assignment.due) == month,
+        db.extract('day', Assignment.due) == day
+    ).order_by(Assignment.due).all()
+
+    if request.method == 'POST':
+        assignment_title = request.form['title']
+        assignment_description = request.form['description']
+
+        # datetime config
+        assignment_dueTime = request.form['time']
+        due_time = datetime.strptime(assignment_dueTime, '%H:%M').time()
+        month = int(request.view_args['month'])
+        day = int(request.view_args['day'])
+        due_datetime = datetime(datetime.now().year, month, day, due_time.hour, due_time.minute)
+
+        new_assignment = Assignment(title=assignment_title, due=due_datetime, desc=assignment_description, student_id=current_user.id)
+
+        try:
+            db.session.add(new_assignment)
+            db.session.commit()
+            return redirect(url_for('day', month=month, day=day))
+        except Exception as e:
+            print(e)
+            return 'failed to add assignment'
+    else:
+        return render_template('day.html', month_name=month_name, day_name=day_name, day=day, assignments=assignments)
+
+    return render_template('day.html', month_name=month_name, day_name=day_name, day=day, assignments=assignments)
 
 @app.route('/year')
 @login_required

@@ -11,5 +11,32 @@ QuickCal | {{ month_name }} {{ day }}
         <h2 class="text-center">{{ day_name }}, {{ month_name }} {{ day }}, 2024</h2>
       </div>
     </div>
+    <div class="row">
+      <div class="col">
+          <table class="table table-bordered">
+              <thead>
+                  <tr>
+                      <th colspan="3" scope="col" style="background-color: #007bff; color: #fff; text-align: center;">Assignments</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  {% for assignment in assignments %}
+                  <tr>
+                      <td>{{ assignment.title }}</td>
+                      <td>{{ assignment.desc}}</td>
+                      <td>{{ assignment.due }}</td>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
+
+          <form method="POST">
+            <input type="text" name="title" id="title">
+            <input type="text" name="description" id="description">
+            <input type="time" name="time" id="time">
+            <input type="submit" value="Add Assignment">
+          </form>
+      </div>
+  </div>
 </div>
 {% endblock %}
