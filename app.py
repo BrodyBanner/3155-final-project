@@ -61,6 +61,10 @@ class Schedule(db.Model):
 def load_user(user_id):
     return Student.query.get(int(user_id))
 
+@app.route('/')
+def index():
+    return redirect(url_for('login'))
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -85,7 +89,9 @@ def login():
         user = Student.query.filter_by(name=name).first()
         if user and user.password == password:
             login_user(user)
-            return redirect(url_for('year'))
+            current_month = datetime.now().month
+            month_url = url_for('month', month=current_month)
+            return redirect(month_url)
         else:
             flash('Invalid username or password. Please try again.')
     return render_template('login.html')
