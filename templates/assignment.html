@@ -1,0 +1,49 @@
+{% extends "bootstrap/base.html" %}
+
+{% block title %}
+QuickCal | Assignments
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col">
+          <h2 class="text-center">Assignments</h2>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th colspan="4" scope="col" style="background-color: #007bff; color: #fff; text-align: center;">Assignments</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assignment in assignments %}
+                    <tr>
+                        <td>{{ assignment.title }}</td>
+                        <td>{{ assignment.desc}}</td>
+                        <td>{{ assignment.due }}</td>
+                        <td class="text-right">
+                            <form method="POST" action="/delete">
+                                <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
+                                <input type="submit" value="Delete">
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <form method="POST" action="/add">
+                <input type="text" name="title" id="title">
+                <input type="text" name="description" id="description">
+                <input type="date" name="date" id="date">
+                <input type="time" name="time" id="time">
+                <input type="submit" value="Add Assignment">
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

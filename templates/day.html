@@ -30,10 +30,11 @@ QuickCal | {{ month_name }} {{ day }}
               </tbody>
           </table>
 
-          <form method="POST">
+          <form method="POST" action="/add">
             <input type="text" name="title" id="title">
             <input type="text" name="description" id="description">
             <input type="time" name="time" id="time">
+            <input hidden="date" name="date" id="date" value="{{ month }}-{{ day }}">
             <input type="submit" value="Add Assignment">
           </form>
       </div>

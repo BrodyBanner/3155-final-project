@@ -122,36 +122,83 @@ def day(month, day):
         db.extract('day', Assignment.due) == day
     ).order_by(Assignment.due).all()
 
-    if request.method == 'POST':
-        assignment_title = request.form['title']
-        assignment_description = request.form['description']
-
-        # datetime config
-        assignment_dueTime = request.form['time']
-        due_time = datetime.strptime(assignment_dueTime, '%H:%M').time()
-        month = int(request.view_args['month'])
-        day = int(request.view_args['day'])
-        due_datetime = datetime(datetime.now().year, month, day, due_time.hour, due_time.minute)
-
-        new_assignment = Assignment(title=assignment_title, due=due_datetime, desc=assignment_description, student_id=current_user.id)
-
-        try:
-            db.session.add(new_assignment)
-            db.session.commit()
-            return redirect(url_for('day', month=month, day=day))
-        except Exception as e:
-            print(e)
-            return 'failed to add assignment'
-    else:
-        return render_template('day.html', month_name=month_name, day_name=day_name, day=day, assignments=assignments)
-
-    return render_template('day.html', month_name=month_name, day_name=day_name, day=day, assignments=assignments)
+    return render_template('day.html', month_name=month_name, day_name=day_name, day=day, month=month, assignments=assignments)
 
 @app.route('/year')
 @login_required
 def year():
     months = {i: calendar.month_name[i] for i in range(1, 13)}
     return render_template('year.html', months=months)
+
+@app.route('/assignment')
+@login_required
+def assignment():
+    assignments = Assignment.query.order_by(Assignment.due).all()
+
+    return render_template('assignment.html', assignments=assignments)
+
+@app.route('/add', methods=['POST'])
+def add_assignment():
+    assignment_title = request.form['title']
+    assignment_description = request.form['description']
+
+    # Datetime conversion
+    assignment_date = request.form['date']
+    assignment_time = request.form['time']
+    try:
+        date_obj = datetime.strptime(assignment_date, '%Y-%m-%d')
+        time_obj = datetime.strptime(assignment_time, '%H:%M')
+        assignment_datetime = datetime(
+            date_obj.year,
+            date_obj.month,
+            date_obj.day,
+            time_obj.hour,
+            time_obj.minute
+        )
+
+
+
+        new_assignment = Assignment(title=assignment_title, due=assignment_datetime, desc=assignment_description, student_id=current_user.id)
+
+        try:
+            db.session.add(new_assignment)
+            db.session.commit()
+            return redirect('/assignment')
+        except Exception as e:
+            print(e)
+            return 'Failed to add assignment.'
+    except:
+        date_obj = datetime.strptime(assignment_date, '%m-%d')
+        time_obj = datetime.strptime(assignment_time, '%H:%M')
+        assignment_datetime = datetime(
+            datetime.now().year,
+            date_obj.month,
+            date_obj.day,
+            time_obj.hour,
+            time_obj.minute
+        )
+
+        new_assignment = Assignment(title=assignment_title, due=assignment_datetime, desc=assignment_description, student_id=current_user.id)
+
+        try:
+            db.session.add(new_assignment)
+            db.session.commit()
+            return redirect(url_for('day', month=date_obj.month, day=date_obj.day))
+        except Exception as e:
+            print(e)
+            return 'Failed to add assignment.'
+    
+
+@app.route('/delete', methods=['POST'])
+def delete_assignment():
+    assignment_id = request.form['assignment_id']
+    try:
+        db.session.delete(Assignment.query.get(assignment_id))
+        db.session.commit()
+        return redirect('/assignment')
+    except Exception as e:
+        print(e)
+        return 'Failed to delete assignment.'
 
 def create_db():
     with app.app_context():
