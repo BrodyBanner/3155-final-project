@@ -1,4 +1,4 @@
-{% extends "bootstrap/base.html" %}
+{% extends "base.html" %}
 
 {% block title %}
 QuickCal | {{ month_name }} 2024
@@ -12,7 +12,7 @@ QuickCal | {{ month_name }} 2024
             <h2 class="text-center">{{ month_name }} 2024</h2>
         </div>
     </div>
-    <div class="row">
+    <div class="row mt-5">
         <div class="col">
             <table class="table table-bordered">
                 <thead>
@@ -34,7 +34,7 @@ QuickCal | {{ month_name }} 2024
                       {% endfor %}
                     {% endif %}
                     {% for i in range(1, num_days + 1) %}
-                        <td>
+                        <td class="text-center">
                           <a href="{{ url_for('day', month=month, day=i) }}" class="btn btn-block btn-day">
                             <div class="day-container">
                                 <div class="day-number">{{ i }}</div>

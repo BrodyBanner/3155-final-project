@@ -27,8 +27,8 @@ class Student(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(40), nullable=False)
     password = db.Column(db.String(40), nullable=False)
-    assignments = db.relationship('Assignment', backref='student', lazy=True)
-    schedules = db.relationship('Schedule', backref='student', lazy=True)
+    assignments = db.relationship('Assignment', backref='student', lazy=True, cascade='all, delete-orphan')
+    schedules = db.relationship('Schedule', backref='student', lazy=True, cascade='all, delete-orphan')
 
     def __repr__(self):
         return '<Student %r>' % self.id
@@ -38,7 +38,7 @@ class Assignment(db.Model):
     title = db.Column(db.String(40), nullable=False)
     due = db.Column(db.DateTime, nullable=False)
     desc = db.Column(db.String(200), nullable=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id', ondelete='CASCADE'), nullable=False)
     
     def __repr__(self):
         return '<Assignment %r>' % self.id
@@ -51,7 +51,7 @@ class Schedule(db.Model):
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
     desc = db.Column(db.String(200), nullable=True)
-    student_id = db.Column(db.Integer, db.ForeignKey('student.id'), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey('student.id', ondelete='CASCADE'), nullable=False)
     assignments = db.relationship('Assignment', secondary=assignments_schedules, backref=db.backref('schedules', lazy=True))
 
     def __repr__(self):
@@ -102,6 +102,19 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+@app.route('/delete_account', methods=['POST'])
+@login_required
+def delete_account():
+    try:
+        db.session.delete(current_user)
+        db.session.commit()
+        logout_user()
+        return redirect('/login')
+    except Exception as e:
+        db.session.rollback()
+        print(e)
+        return 'Failed to delete user.'
+
 @app.route('/month/<int:month>')
 @login_required
 def month(month):
@@ -114,15 +127,17 @@ def month(month):
 @login_required
 def day(month, day):
     month_name = calendar.month_name[month]
+    year = datetime.now().year
     start_day = calendar.monthrange(2024, month)[0] + 1
     day_name = calendar.day_name[((day + start_day) % 7) - 2]
 
     assignments = Assignment.query.filter(
         db.extract('month', Assignment.due) == month,
-        db.extract('day', Assignment.due) == day
+        db.extract('day', Assignment.due) == day,
+        Assignment.student_id == current_user.id
     ).order_by(Assignment.due).all()
 
-    return render_template('day.html', month_name=month_name, day_name=day_name, day=day, month=month, assignments=assignments)
+    return render_template('day.html', month_name=month_name, day_name=day_name, day=day, month=month, year=year, assignments=assignments)
 
 @app.route('/year')
 @login_required
@@ -133,9 +148,19 @@ def year():
 @app.route('/assignment')
 @login_required
 def assignment():
-    assignments = Assignment.query.order_by(Assignment.due).all()
-
+    assignments = Assignment.query.filter_by(student_id=current_user.id).order_by(Assignment.due).all()
     return render_template('assignment.html', assignments=assignments)
+
+@app.route('/schedules')
+@login_required
+def schedules():
+    schedules = Schedule.query.all()
+    return render_template('schedules.html')
+
+@app.route('/account')
+@login_required
+def account():
+    return render_template('account.html', current_user=current_user)
 
 @app.route('/add', methods=['POST'])
 def add_assignment():
@@ -143,9 +168,10 @@ def add_assignment():
     assignment_description = request.form['description']
 
     # Datetime conversion
-    assignment_date = request.form['date']
-    assignment_time = request.form['time']
     try:
+        assignment_date = request.form['date']
+        assignment_time = request.form['time']
+
         date_obj = datetime.strptime(assignment_date, '%Y-%m-%d')
         time_obj = datetime.strptime(assignment_time, '%H:%M')
         assignment_datetime = datetime(
@@ -155,38 +181,19 @@ def add_assignment():
             time_obj.hour,
             time_obj.minute
         )
+    except Exception as e:
+        print(e)
+        return 'Failed DateTime conversion'
 
+    new_assignment = Assignment(title=assignment_title, due=assignment_datetime, desc=assignment_description, student_id=current_user.id)
 
-
-        new_assignment = Assignment(title=assignment_title, due=assignment_datetime, desc=assignment_description, student_id=current_user.id)
-
-        try:
-            db.session.add(new_assignment)
-            db.session.commit()
-            return redirect('/assignment')
-        except Exception as e:
-            print(e)
-            return 'Failed to add assignment.'
-    except:
-        date_obj = datetime.strptime(assignment_date, '%m-%d')
-        time_obj = datetime.strptime(assignment_time, '%H:%M')
-        assignment_datetime = datetime(
-            datetime.now().year,
-            date_obj.month,
-            date_obj.day,
-            time_obj.hour,
-            time_obj.minute
-        )
-
-        new_assignment = Assignment(title=assignment_title, due=assignment_datetime, desc=assignment_description, student_id=current_user.id)
-
-        try:
-            db.session.add(new_assignment)
-            db.session.commit()
-            return redirect(url_for('day', month=date_obj.month, day=date_obj.day))
-        except Exception as e:
-            print(e)
-            return 'Failed to add assignment.'
+    try:
+        db.session.add(new_assignment)
+        db.session.commit()
+        return redirect(request.form['redirect_url'])
+    except Exception as e:
+        print(e)
+        return 'Failed to add assignment.'
     
 
 @app.route('/delete', methods=['POST'])

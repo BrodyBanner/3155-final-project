@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}
+    QuickCal | Account Page
+{% endblock %}
+
+{% block content %}
+    <div class="container mt-5">
+        <h2 class="text-center mt-5">{{ current_user.name }}</h2>
+        <h3 class="text-center mt-1">{{ current_user.id }}</h2>
+        <form methods="POST" action="logout" class="text-center">
+            <button type="submit">Logout</button>
+        </form>
+        <form method="POST" action="/delete_account" class="text-center">
+            <button type="submit">Delete Account</button>
+        </form>
+    </div>
+{% endblock %}

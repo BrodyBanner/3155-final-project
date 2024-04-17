@@ -1,4 +1,4 @@
-{% extends "bootstrap/base.html" %}
+{% extends "base.html" %}
 
 {% block title %}
 QuickCal | {{ month_name }} {{ day }}
@@ -8,10 +8,10 @@ QuickCal | {{ month_name }} {{ day }}
 <div class="container mt-5">
     <div class="row">
       <div class="col">
-        <h2 class="text-center">{{ day_name }}, {{ month_name }} {{ day }}, 2024</h2>
+        <h2 class="text-center">{{ day_name }}, {{ month_name }} {{ day }}, {{ year }}</h2>
       </div>
     </div>
-    <div class="row">
+    <div class="row mt-5">
       <div class="col">
           <table class="table table-bordered">
               <thead>
@@ -22,20 +22,22 @@ QuickCal | {{ month_name }} {{ day }}
               <tbody>
                   {% for assignment in assignments %}
                   <tr>
-                      <td>{{ assignment.title }}</td>
-                      <td>{{ assignment.desc}}</td>
-                      <td>{{ assignment.due }}</td>
+                      <td class="col-4">{{ assignment.title }}</td>
+                      <td class="col-4">{{ assignment.desc}}</td>
+                      <td class="col-4">{{ assignment.due }}</td>
                   </tr>
                   {% endfor %}
               </tbody>
           </table>
 
-          <form method="POST" action="/add">
-            <input type="text" name="title" id="title">
-            <input type="text" name="description" id="description">
-            <input type="time" name="time" id="time">
-            <input hidden="date" name="date" id="date" value="{{ month }}-{{ day }}">
-            <input type="submit" value="Add Assignment">
+          <form method="POST" action="/add" class="text-center">
+            <input type="hidden" name="redirect_url" value="{{ request.path }}" required>
+            <input type="hidden" name="date" id="date" value="{{ year }}-{{ month }}-{{ day }}" required>
+            <input type="text" name="title" id="title" placeholder="Assignment Name" autocomplete="off" required>
+            <input type="text" name="description" id="description" placeholder="Description" autocomplete="off" required>
+            <input type="time" name="time" id="time" required>
+            <br>
+            <input type="submit" value="Add Assignment" class="text-center mt-3">
           </form>
       </div>
   </div>

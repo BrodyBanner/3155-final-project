@@ -1,7 +1,11 @@
-{% extends "bootstrap/base.html" %}
+{% extends "base.html" %}
 
 {% block title %}
 QuickCal | 2024
+{% endblock %}
+
+{% block navbar %}
+  {{super()}}
 {% endblock %}
 
 {% block content %}
@@ -11,11 +15,11 @@ QuickCal | 2024
         <h2 class="text-center">2024</h2>
       </div>
     </div>
-    <div class="row">
+    <div class="row mt-4">
       <div class="col">
         <div class="row">
           {% for month_number, month_name in months.items() %}
-            <div class="col-md-3 mb-3">
+            <div class="col-md-3 d-flex flex-column pt-3">
               <a href="{{ url_for('month', month=month_number) }}" class="btn btn-block btn-month" style="background-color: #007bff; color: #fff; margin-bottom: 10px;">{{ month_name }}</a>
             </div>
           {% endfor %}
