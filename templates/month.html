@@ -14,7 +14,7 @@ QuickCal | {{ month_name }} 2024
     </div>
     <div class="row mt-5">
         <div class="col">
-            <table class="table table-bordered">
+            <table class="table table-bordered" style="table-layout: fixed ; width: 100%;">
                 <thead>
                     <tr>
                         <th scope="col" style="background-color: #007bff; color: #fff; text-align: center;">Sunday</th>
@@ -34,11 +34,10 @@ QuickCal | {{ month_name }} 2024
                       {% endfor %}
                     {% endif %}
                     {% for i in range(1, num_days + 1) %}
-                        <td class="text-center">
+                        <td class="text-center" {% if combined_weights.get(i,0) >= 6 %}style="background-color: red"{% elif combined_weights.get(i, 0) >= 3 %}style="background-color: orange"{% elif combined_weights.get(i, 0) >= 1 %}style="background-color: yellow"{% endif %}>
                           <a href="{{ url_for('day', month=month, day=i) }}" class="btn btn-block btn-day">
                             <div class="day-container">
-                                <div class="day-number">{{ i }}</div>
-                                <div class="day-info">Assignment Info</div>
+                                <div class="day-number" {% if combined_weights.get(i,0) >= 6 %}style="color: white;"{% endif %}>{{ i }}</div>
                             </div>
                           </a>
                         </td>
