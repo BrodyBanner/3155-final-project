@@ -35,6 +35,12 @@ QuickCal | {{ month_name }} {{ day }}
             <input type="hidden" name="date" id="date" value="{{ year }}-{{ month }}-{{ day }}" required>
             <input type="text" name="title" id="title" placeholder="Assignment Name" autocomplete="off" required>
             <input type="text" name="description" id="description" placeholder="Description" autocomplete="off" required>
+            <select name="weight" id="weight" required>
+              <option value="" disabled selected>Priority</option>
+              <option value="1">1 - Not very important.</option>
+              <option value="2">2 - Moderately important.</option>
+              <option value="3">3 - Very important!</option>
+            </select>
             <input type="time" name="time" id="time" required>
             <br>
             <input type="submit" value="Add Assignment" class="text-center mt-3">

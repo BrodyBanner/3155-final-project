@@ -22,9 +22,9 @@ QuickCal | Assignments
                 <tbody>
                     {% for assignment in assignments %}
                     <tr>
-                        <td class="col-4">{{ assignment.title }}</td>
-                        <td class="col-4">{{ assignment.desc}}</td>
-                        <td class="col-4">{{ assignment.due }}</td>
+                        <td class="col-5">{{ assignment.title }}</td>
+                        <td class="col-5">{{ assignment.desc}}</td>
+                        <td class="col-5">{{ assignment.due }}</td>
                         <td class="d-flex flex-row-reverse">
                             <form method="POST" action="/delete">
                                 <input type="hidden" name="assignment_id" value="{{ assignment.id }}">
@@ -40,6 +40,12 @@ QuickCal | Assignments
                 <input type="hidden" name="redirect_url" value="{{ request.path }}" required>
                 <input type="text" name="title" id="title" placeholder="Assignment Name" autocomplete="off" required>
                 <input type="text" name="description" id="description" placeholder="Description" autocomplete="off" required>
+                <select name="weight" id="weight" required>
+                    <option value="" disabled selected>Priority</option>
+                    <option value="1">1 - Not very important.</option>
+                    <option value="2">2 - Moderately important.</option>
+                    <option value="3">3 - Very important!</option>
+                </select>
                 <input type="date" name="date" id="date" min="2024-01-01" max="2024-12-31" required>
                 <input type="time" name="time" id="time" required>
                 <br>

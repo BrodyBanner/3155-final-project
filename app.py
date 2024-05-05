@@ -15,6 +15,7 @@ import os
 load_dotenv()
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///calendar.db'
+# Couldn't get random key working
 app.config['SECRET_KEY'] = 'bruhevent!'
 db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
@@ -40,6 +41,7 @@ class Assignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(40), nullable=False)
     due = db.Column(db.DateTime, nullable=False)
+    weight = db.Column(db.Integer, nullable=False)
     desc = db.Column(db.String(200), nullable=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id', ondelete='CASCADE'), nullable=False)
     
@@ -53,6 +55,7 @@ class Schedule(db.Model):
     end_date = db.Column(db.Date, nullable=False)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
+    weight = db.Column(db.Integer, nullable=False)
     desc = db.Column(db.String(200), nullable=True)
     student_id = db.Column(db.Integer, db.ForeignKey('student.id', ondelete='CASCADE'), nullable=False)
     assignments = db.relationship('Assignment', secondary=assignments_schedules, backref=db.backref('schedules', lazy=True))
@@ -131,13 +134,44 @@ def delete_account():
         print(e)
         return 'Failed to delete user.'
 
+def calculate_combined_weight(month):
+    combined_weights = {}
+
+    assignments = Assignment.query.filter(
+        db.extract('month', Assignment.due) == month,
+        Assignment.student_id == current_user.id
+    ).all()
+
+    schedules = Schedule.query.filter(
+        db.extract('month', Schedule.start_date) <= month,
+        db.extract('month', Schedule.end_date) >= month,
+        Schedule.student_id == current_user.id
+    ).all()
+
+    for day in range(1, calendar.monthrange(2024, month)[1] + 1):
+        combined_weight = 0
+        
+        for assignment in assignments:
+            if assignment.due.day == day:
+                combined_weight += assignment.weight
+        
+        for schedule in schedules:
+            if schedule.start_date.day <= day <= schedule.end_date.day:
+                combined_weight += schedule.weight
+        
+        combined_weights[day] = combined_weight
+    
+    return combined_weights
+
 @app.route('/month/<int:month>')
 @login_required
 def month(month):
     month_name = calendar.month_name[month]
     start_day = calendar.monthrange(2024, month)[0] + 1
     num_days = calendar.monthrange(2024, month)[1]
-    return render_template('month.html', month_name=month_name, num_days=num_days, month=month, start_day=start_day)
+    combined_weights = calculate_combined_weight(month)
+
+    return render_template('month.html', month_name=month_name, num_days=num_days, month=month, start_day=start_day, combined_weights=combined_weights)
 
 @app.route('/day/<int:month>/<int:day>', methods=['POST', 'GET'])
 @login_required
@@ -187,6 +221,7 @@ def account():
 def add_assignment():
     assignment_title = request.form['title']
     assignment_description = request.form['description']
+    assignment_weight = request.form['weight']
 
     # Datetime conversion
     try:
@@ -206,7 +241,7 @@ def add_assignment():
         print(e)
         return 'Failed DateTime conversion'
 
-    new_assignment = Assignment(title=assignment_title, due=assignment_datetime, desc=assignment_description, student_id=current_user.id)
+    new_assignment = Assignment(title=assignment_title, due=assignment_datetime, weight=assignment_weight, desc=assignment_description, student_id=current_user.id)
 
     try:
         db.session.add(new_assignment)
