@@ -45,6 +45,21 @@ QuickCal | {{ month_name }} {{ day }}
             <br>
             <input type="submit" value="Add Assignment" class="text-center mt-3">
           </form>
+
+          <form action="{{ url_for('day', month=month, day=day) }}" method="GET" class="text-center mt-5">
+            <select name="schedule_id" id="schedule">
+                <option value="0">All Schedules</option>
+                {% for schedule in current_user.schedules %}
+                  {% if schedule.id == selected_schedule_id %}
+                    <option value="{{ schedule.id }}" selected>{{ schedule.title }}</option>
+                  {% else %}
+                    <option value="{{ schedule.id }}">{{ schedule.title }}</option>
+                  {% endif %}
+                {% endfor %}
+            </select>
+            <button type="submit">Filter</button>
+        </form>
+        
       </div>
   </div>
 </div>

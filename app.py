@@ -119,6 +119,7 @@ def login():
 @login_required
 def logout():
     logout_user()
+    session['selected_schedule_id'] = 0
     return redirect(url_for('login'))
 
 @app.route('/delete_account', methods=['POST'])
@@ -134,19 +135,28 @@ def delete_account():
         print(e)
         return 'Failed to delete user.'
 
-def calculate_combined_weight(month):
+def calculate_combined_weight(month, schedule_id=None):
     combined_weights = {}
 
-    assignments = Assignment.query.filter(
-        db.extract('month', Assignment.due) == month,
-        Assignment.student_id == current_user.id
-    ).all()
+    if schedule_id:
+        assignments = Assignment.query.join(Schedule.assignments).filter(
+            Schedule.id == schedule_id,
+            db.extract('month', Assignment.due) == month,
+            Assignment.student_id == current_user.id
+        ).all()
 
-    schedules = Schedule.query.filter(
-        db.extract('month', Schedule.start_date) <= month,
-        db.extract('month', Schedule.end_date) >= month,
-        Schedule.student_id == current_user.id
-    ).all()
+        schedules = Schedule.query.filter_by(id=schedule_id).all()
+    else:
+        assignments = Assignment.query.filter(
+            db.extract('month', Assignment.due) == month,
+            Assignment.student_id == current_user.id
+        ).all()
+
+        schedules = Schedule.query.filter(
+            db.extract('month', Schedule.start_date) <= month,
+            db.extract('month', Schedule.end_date) >= month,
+            Schedule.student_id == current_user.id
+        ).all()
 
     for day in range(1, calendar.monthrange(2024, month)[1] + 1):
         combined_weight = 0
@@ -169,9 +179,16 @@ def month(month):
     month_name = calendar.month_name[month]
     start_day = calendar.monthrange(2024, month)[0] + 1
     num_days = calendar.monthrange(2024, month)[1]
-    combined_weights = calculate_combined_weight(month)
 
-    return render_template('month.html', month_name=month_name, num_days=num_days, month=month, start_day=start_day, combined_weights=combined_weights)
+    selected_schedule_id = request.args.get('schedule_id', type=int)
+    if selected_schedule_id is None:
+        selected_schedule_id = session.get('selected_schedule_id')
+    else:
+        session['selected_schedule_id'] = selected_schedule_id
+    
+    combined_weights = calculate_combined_weight(month, selected_schedule_id)
+
+    return render_template('month.html', month_name=month_name, num_days=num_days, month=month, start_day=start_day, combined_weights=combined_weights, selected_schedule_id=selected_schedule_id)
 
 @app.route('/day/<int:month>/<int:day>', methods=['POST', 'GET'])
 @login_required
@@ -181,13 +198,30 @@ def day(month, day):
     start_day = calendar.monthrange(2024, month)[0] + 1
     day_name = calendar.day_name[((day + start_day) % 7) - 2]
 
-    assignments = Assignment.query.filter(
-        db.extract('month', Assignment.due) == month,
-        db.extract('day', Assignment.due) == day,
-        Assignment.student_id == current_user.id
-    ).order_by(Assignment.due).all()
+    selected_schedule_id = request.args.get('schedule_id', type=int)
+    if selected_schedule_id is None:
+        selected_schedule_id = session.get('selected_schedule_id')
+    else:
+        session['selected_schedule_id'] = selected_schedule_id
 
-    return render_template('day.html', month_name=month_name, day_name=day_name, day=day, month=month, year=year, assignments=assignments)
+    if selected_schedule_id is None:
+        selected_schedule_id = session.get('selected_schedule_id')
+
+    if selected_schedule_id:
+        assignments = Assignment.query.join(Schedule.assignments).filter(
+            Schedule.id == selected_schedule_id,
+            db.extract('month', Assignment.due) == month,
+            db.extract('day', Assignment.due) == day,
+            Assignment.student_id == current_user.id
+        ).order_by(Assignment.due).all()
+    else:
+        assignments = Assignment.query.filter(
+            db.extract('month', Assignment.due) == month,
+            db.extract('day', Assignment.due) == day,
+           Assignment.student_id == current_user.id
+        ).order_by(Assignment.due).all()
+
+    return render_template('day.html', month_name=month_name, day_name=day_name, day=day, month=month, year=year, assignments=assignments, selected_schedule_id=selected_schedule_id)
 
 @app.route('/year')
 @login_required
@@ -201,15 +235,10 @@ def assignment():
     assignments = Assignment.query.filter_by(student_id=current_user.id).order_by(Assignment.due).all()
     return render_template('assignment.html', assignments=assignments)
 
-@app.route('/schedules', methods=['POST', 'GET'])
+@app.route('/schedules', methods=['GET'])
 @login_required
 def schedules():
     schedules = Schedule.query.all()
-    if request.method == 'POST':
-        number = Schedule.query.get_or_404(request.form['number'])
-        db.session.delete(number)
-        db.session.commit()
-        return redirect(url_for('schedules'))
     return render_template('schedules.html', schedules=schedules)
 
 @app.route('/account')
@@ -263,6 +292,17 @@ def delete_assignment():
         print(e)
         return 'Failed to delete assignment.'
 
+@app.route('/deleteSchedule', methods=['POST'])
+def delete_schedule():
+    schedule_id = request.form['schedule_id']
+    try:
+        db.session.delete(Schedule.query.get(schedule_id))
+        db.session.commit()
+        return redirect('/schedules')
+    except Exception as e:
+        print(e)
+        return 'Failed to delete schedule.'
+
 @app.route('/newSchedule', methods=['POST', 'GET'])
 def new_schedule():
     form = ScheduleForm()
@@ -279,7 +319,7 @@ def new_schedule():
         description = form.description.data
         selected_assignments = form.assignments.data
 
-        schedule = Schedule(title=name, start_date=start_date, start_time=start_time, end_date=end_date, end_time=end_time, desc=description, student_id=current_user.id)
+        schedule = Schedule(title=name, start_date=start_date, start_time=start_time, end_date=end_date, end_time=end_time, weight=0, desc=description, student_id=current_user.id)
         db.session.add(schedule)
         db.session.commit()
 

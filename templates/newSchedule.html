@@ -8,12 +8,12 @@ QuickCal | Schedules
 <div class="container mt-5">
     <div class="row">
         <div class="col">
-          <h2 class="text-center">New Schedule</h2>
+          <h2 class="text-center">Schedule Wizard</h2>
         </div>
       </div>
       <div class="row">
         <div class="col">
-            <form method="POST">
+            <form method="POST" class="text-center mt-4">
                 {{ form.hidden_tag() }}
                 <div>
                     {{ form.name.label }}<br>
@@ -46,19 +46,16 @@ QuickCal | Schedules
                 <div>
                     {{ form.end_time.label }}<br>
                     {{ form.end_time(size=8) }}<br>
-                    {% for error in form.end_time.errors %}
-                        <span style="color: red;">{{ error }}</span><br>
-                    {% endfor %}
-                </div>
-                <div>
                     {{ form.description.label }}<br>
                     {{ form.description(rows=5, cols=50) }}<br>
                     {% for error in form.description.errors %}
                         <span style="color: red;">{{ error }}</span><br>
                     {% endfor %}
                 </div>
-                <div id="assignments-container">
+                <div>
                     {{ form.assignments.label }}<br>
+                </div>
+                <div id="assignments-container">
                     {% for choice in form.assignments %}
                         {{ choice }} {{ choice.label }}<br>
                     {% endfor %}
@@ -103,7 +100,6 @@ QuickCal | Schedules
     }
     
     function updateAssignmentsCheckboxes(assignments) {
-        console.log(assignments);
 
         var assignmentsContainer = document.getElementById('assignments-container');
         assignmentsContainer.innerHTML = '';
