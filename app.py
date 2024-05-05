@@ -1,9 +1,12 @@
 # Brody Banner, Matthew Rinaldi
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_bootstrap import Bootstrap
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_wtf import FlaskForm
+from wtforms import StringField, DateField, TimeField, TextAreaField, SelectMultipleField, widgets
+from wtforms.validators import DataRequired
 from datetime import datetime
 import calendar
 from dotenv import load_dotenv
@@ -56,7 +59,20 @@ class Schedule(db.Model):
 
     def __repr__(self):
         return '<Schedule %r>' % self.id
-    
+
+class MultiCheckboxField(SelectMultipleField):
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
+
+class ScheduleForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired()])
+    start_date = DateField('Start Date', validators=[DataRequired()])
+    start_time = TimeField('Start Time', validators=[DataRequired()])
+    end_date = DateField('End Date', validators=[DataRequired()])
+    end_time = TimeField('End Time', validators=[DataRequired()])
+    description = TextAreaField('Description')
+    assignments = MultiCheckboxField('Assignments')
+
 @login_manager.user_loader
 def load_user(user_id):
     return Student.query.get(int(user_id))
@@ -151,11 +167,16 @@ def assignment():
     assignments = Assignment.query.filter_by(student_id=current_user.id).order_by(Assignment.due).all()
     return render_template('assignment.html', assignments=assignments)
 
-@app.route('/schedules')
+@app.route('/schedules', methods=['POST', 'GET'])
 @login_required
 def schedules():
     schedules = Schedule.query.all()
-    return render_template('schedules.html')
+    if request.method == 'POST':
+        number = Schedule.query.get_or_404(request.form['number'])
+        db.session.delete(number)
+        db.session.commit()
+        return redirect(url_for('schedules'))
+    return render_template('schedules.html', schedules=schedules)
 
 @app.route('/account')
 @login_required
@@ -206,6 +227,62 @@ def delete_assignment():
     except Exception as e:
         print(e)
         return 'Failed to delete assignment.'
+
+@app.route('/newSchedule', methods=['POST', 'GET'])
+def new_schedule():
+    form = ScheduleForm()
+
+    assignments = Assignment.query.filter_by(student_id=current_user.id).all()
+    form.assignments.choices = [(str(assignment.id), assignment.title) for assignment in assignments]
+
+    if form.validate_on_submit():
+        name = form.name.data
+        start_date = form.start_date.data
+        start_time = form.start_time.data
+        end_date = form.end_date.data
+        end_time = form.end_time.data
+        description = form.description.data
+        selected_assignments = form.assignments.data
+
+        schedule = Schedule(title=name, start_date=start_date, start_time=start_time, end_date=end_date, end_time=end_time, desc=description, student_id=current_user.id)
+        db.session.add(schedule)
+        db.session.commit()
+
+        for assignment_id in selected_assignments:
+            assignment = Assignment.query.get(assignment_id)
+            if assignment:
+                schedule.assignments.append(assignment)
+        db.session.commit()
+
+        return redirect(url_for('schedules'))
+    
+
+    return render_template('newSchedule.html', form=form)
+
+@app.route('/get_assignments')
+def get_assignments():
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    start_time = request.args.get('start_time')
+    end_time = request.args.get('end_time')
+
+    # I really hate datetime
+    start_time = datetime.strptime(start_time, '%H:%M').time()
+    start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+    end_time = datetime.strptime(end_time, '%H:%M').time()
+    end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+
+    start_datetime = datetime.combine(start_date, start_time)
+    end_datetime = datetime.combine(end_date, end_time)
+
+    filtered_assignments = Assignment.query.filter(
+        Assignment.due.between(start_datetime, end_datetime),
+        Assignment.student_id == current_user.id
+    ).all()
+
+    assignments_list = [{'id': assignment.id, 'title': assignment.title} for assignment in filtered_assignments]
+
+    return jsonify(assignments_list)
 
 def create_db():
     with app.app_context():
